@@ -1,34 +1,40 @@
 import re
 
-# Token patterns
+# Token patterns (updated)
 TOKEN_SPEC = [
-    ('KEYWORD',     r'\b(if|else|while|return|int|float|char|for)\b'),
+    ('KEYWORD',     r'\b(if|else|while|return|int|float|char|for|void|printf)\b'),
     ('IDENTIFIER',  r'\b[A-Za-z_]\w*\b'),
     ('NUMBER',      r'\b\d+(\.\d+)?\b'),
-    ('OPERATOR',    r'[+\-*/=<>!]=?|&&|\|\|'),
+    ('STRING',      r'"[^"\n]*"'),
+    ('OPERATOR',    r'==|!=|<=|>=|&&|\|\||[+\-*/=<>]'),
     ('SEPARATOR',   r'[(){},;]'),
-    ('STRING',      r'"[^"]*"'),
     ('COMMENT',     r'//.*?$|/\*.*?\*/'),
     ('NEWLINE',     r'\n'),
     ('SKIP',        r'[ \t]+'),
     ('MISMATCH',    r'.')
 ]
 
-# Compile into regex
+# Compile regex
 TOK_REGEX = '|'.join(f'(?P<{name}>{pattern})' for name, pattern in TOKEN_SPEC)
-token_re = re.compile(TOK_REGEX, re.DOTALL | re.MULTILINE)
+token_re = re.compile(TOK_REGEX, re.MULTILINE | re.DOTALL)
 
 def tokenize(code):
     tokens = []
+    line_num = 1
+
     for mo in token_re.finditer(code):
         kind = mo.lastgroup
         value = mo.group()
-        if kind == 'NEWLINE' or kind == 'SKIP' or kind == 'COMMENT':
+
+        if kind == 'NEWLINE':
+            line_num += 1
+        elif kind in ('SKIP', 'COMMENT'):
             continue
         elif kind == 'MISMATCH':
-            raise RuntimeError(f'Unexpected character: {value}')
+            print(f"⚠️ Error at line {line_num}: Unexpected '{value}'")
         else:
-            tokens.append((kind, value))
+            tokens.append((kind, value, line_num))
+
     return tokens
 
 # Test
@@ -42,5 +48,6 @@ int main() {
 '''
 
 tokens = tokenize(source_code)
+
 for t in tokens:
     print(t)
